@@ -9,6 +9,7 @@ echo "*.jar" >> .gitignore
 git add .
 git commit -q -m "initial commit"
 
+git push -u origin main
 
 
 cd ~/environment/mcpserver
@@ -26,5 +27,26 @@ git remote add origin https://github.com/SureshYadagiri/mcpserver.git
 curl -X POST http://localhost:8081/unicorns \
   -H "Content-Type: application/json" \
   -d '{"name": "unicorn-classic-small", "age": "10", "type": "classic", "size": "small"}'
+
+
+
+
+aws ecr get-login-password --region ${AWS_REGION} \
+  | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+
+
+  cd ~/environment/mcpserver
+mvn compile jib:build \
+  -Dimage=${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/mcpserver:latest \
+  -DskipTests
+
+
+  aws eks create-pod-identity-association \
+  --cluster-name workshop-eks \
+  --namespace mcpserver \
+  --service-account mcpserver \
+  --role-arn arn:aws:iam::${ACCOUNT_ID}:role/unicornstore-eks-pod-role \
+  --no-cli-pager
+
 
   
