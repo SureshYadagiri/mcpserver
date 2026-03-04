@@ -1,0 +1,30 @@
+mkdir -p ~/environment/mcpserver
+rsync -aq ~/java-on-aws/apps/unicorn-store-spring/ ~/environment/mcpserver \
+  --exclude target --exclude src/test
+
+cd ~/environment/mcpserver
+git init -b main
+echo "target" >> .gitignore
+echo "*.jar" >> .gitignore
+git add .
+git commit -q -m "initial commit"
+
+
+
+cd ~/environment/mcpserver
+export SPRING_DATASOURCE_URL=$(aws ssm get-parameter --name workshop-db-connection-string --no-cli-pager \
+  | jq --raw-output '.Parameter.Value')
+export SPRING_DATASOURCE_USERNAME=$(aws secretsmanager get-secret-value --secret-id workshop-db-secret --no-cli-pager \
+  | jq --raw-output '.SecretString' | jq -r .username)
+export SPRING_DATASOURCE_PASSWORD=$(aws secretsmanager get-secret-value --secret-id workshop-db-secret --no-cli-pager \
+  | jq --raw-output '.SecretString' | jq -r .password)
+mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
+
+
+git remote add origin https://github.com/SureshYadagiri/mcpserver.git
+
+curl -X POST http://localhost:8081/unicorns \
+  -H "Content-Type: application/json" \
+  -d '{"name": "unicorn-classic-small", "age": "10", "type": "classic", "size": "small"}'
+
+  
